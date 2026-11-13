@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react';
 import { getPokemonList, searchPokemonByName } from './services/pokeapi';
+import SearchBar from './components/SearchBar';
+import PokemonCard from './components/PokemonCard';
+import Pagination from './components/Pagination';
+import PokemonDetailModal from './components/PokemonDetailModal';
 
 function App() {
   const [pokemons, setPokemons] = useState([]);
   const [nextUrl, setNextUrl] = useState(null);
   const [prevUrl, setPrevUrl] = useState(null);
   const [selectedPokemon, setSelectedPokemon] = useState(null);
-  const [searchInput, setSearchInput] = useState('');
 
-  // Loading, error, dan empty state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isNotFound, setIsNotFound] = useState(false);
 
-  // Fetch daftar + pagination
   const fetchPokemons = async (url = '/pokemon?limit=20&offset=0') => {
     setLoading(true);
     setError('');
@@ -25,7 +26,7 @@ function App() {
       setNextUrl(data.next);
       setPrevUrl(data.previous);
     } catch (err) {
-      setError('Gagal memuat data dari PokéAPI.');
+      setError('Terjadi kesalahan saat memuat daftar Pokémon.');
     } finally {
       setLoading(false);
     }
@@ -35,10 +36,8 @@ function App() {
     fetchPokemons();
   }, []);
 
-  // Handler pencarian nama persis & penanganan 404
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!searchInput.trim()) {
+  const handleSearch = async (query) => {
+    if (!query.trim()) {
       fetchPokemons();
       return;
     }
@@ -48,7 +47,7 @@ function App() {
     setIsNotFound(false);
 
     try {
-      const result = await searchPokemonByName(searchInput);
+      const result = await searchPokemonByName(query);
       setPokemons([result]);
       setNextUrl(null);
       setPrevUrl(null);
@@ -57,87 +56,75 @@ function App() {
         setIsNotFound(true);
         setPokemons([]);
       } else {
-        setError('Terjadi kesalahan saat mencari Pokémon.');
+        setError('Gagal mencari Pokémon. Silakan coba lagi.');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReset = () => {
-    setSearchInput('');
-    fetchPokemons();
-  };
-
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1>Pokédex Explorer (API & State Test)</h1>
+    <div className="min-h-screen bg-slate-100 px-4 py-8">
+      <div className="mx-auto max-w-6xl">
+        <header className="mb-6 text-center">
+          <h1 className="text-3xl font-extrabold text-slate-800">
+            Pokédex Explorer
+          </h1>
+        </header>
 
-      {/* Form tes fungsi pencarian */}
-      <form onSubmit={handleSearch} style={{ marginBottom: '20px', display: 'flex', gap: '8px' }}>
-        <input
-          type="text"
-          placeholder="Cari nama persis (misal: pikachu)"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          style={{ padding: '8px', flex: 1 }}
-        />
-        <button type="submit" style={{ padding: '8px 16px' }}>Cari</button>
-        <button type="button" onClick={handleReset} style={{ padding: '8px 16px' }}>Reset</button>
-      </form>
+        <SearchBar onSearch={handleSearch} onReset={() => fetchPokemons()} />
 
-      {/* Loading State */}
-      {loading && <p>Memuat data Pokémon...</p>}
+        {loading && (
+          <p className="my-12 text-center text-slate-600">
+            Memuat data Pokémon...
+          </p>
+        )}
 
-      {/* Error State */}
-      {!loading && error && (
-        <div>
-          <p style={{ color: 'red' }}>{error}</p>
-          <button onClick={() => fetchPokemons()}>Coba Lagi</button>
-        </div>
-      )}
-
-      {/* Empty State (404) */}
-      {!loading && !error && isNotFound && (
-        <p>Pokémon tidak ditemukan</p>
-      )}
-
-      {/* Render list data hasil fetch API */}
-      {!loading && !error && !isNotFound && pokemons.length > 0 && (
-        <div>
-          <ul>
-            {pokemons.map((pokemon) => (
-              <li
-                key={pokemon.id}
-                onClick={() => setSelectedPokemon(pokemon)}
-                style={{ cursor: 'pointer', marginBottom: '8px' }}
-              >
-                <strong>{pokemon.name}</strong> — Tipe:{' '}
-                {pokemon.types.map((t) => t.type.name).join(', ')}
-              </li>
-            ))}
-          </ul>
-
-          {/* Navigasi Next & Previous */}
-          <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-            <button disabled={!prevUrl} onClick={() => fetchPokemons(prevUrl)}>
-              Previous
-            </button>
-            <button disabled={!nextUrl} onClick={() => fetchPokemons(nextUrl)}>
-              Next
+        {!loading && error && (
+          <div className="my-12 text-center">
+            <p className="mb-3 text-red-600">{error}</p>
+            <button
+              onClick={() => fetchPokemons()}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+            >
+              Coba Lagi
             </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Tes state item terpilih */}
-      {selectedPokemon && (
-        <div style={{ marginTop: '20px', padding: '12px', border: '1px solid #ccc' }}>
-          <h3>State Selected: {selectedPokemon.name}</h3>
-          <p>Height: {selectedPokemon.height / 10} m | Weight: {selectedPokemon.weight / 10} kg</p>
-          <button onClick={() => setSelectedPokemon(null)}>Tutup</button>
-        </div>
-      )}
+        {!loading && !error && isNotFound && (
+          <p className="my-12 text-center font-medium text-slate-600">
+            Pokémon tidak ditemukan
+          </p>
+        )}
+
+        {!loading && !error && !isNotFound && pokemons.length > 0 && (
+          <>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+              {pokemons.map((pokemon) => (
+                <PokemonCard
+                  key={pokemon.id}
+                  pokemon={pokemon}
+                  onSelect={() => setSelectedPokemon(pokemon)}
+                />
+              ))}
+            </div>
+
+            <Pagination
+              prevUrl={prevUrl}
+              nextUrl={nextUrl}
+              onNavigate={(url) => fetchPokemons(url)}
+            />
+          </>
+        )}
+
+        {selectedPokemon && (
+          <PokemonDetailModal
+            pokemon={selectedPokemon}
+            onClose={() => setSelectedPokemon(null)}
+          />
+        )}
+      </div>
     </div>
   );
 }
