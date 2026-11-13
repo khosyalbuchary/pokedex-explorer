@@ -1,7 +1,3 @@
-# Pokédex Explorer
-
-Aplikasi web katalog dan pencarian Pokémon berbasis React, Tailwind CSS, dan Axios menggunakan PokéAPI.
-
 ## Pembagian Tugas Kelompok
 
 | Nama Anggota | File yang Dikerjakan |
